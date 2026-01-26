@@ -35,3 +35,7 @@ out/
 
 ### VS Code ###
 .vscode/
+
+**localdev.properties
+docs
+.cursor
