@@ -1,0 +1,53 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001_create_survey_type_table.yml
+      author: pozdeevIY
+      changes:
+        - createTable:
+            tableName: survey_type
+            remarks: Справочник типов опросов
+            columns:
+              - column:
+                  name: code
+                  type: VARCHAR
+                  remarks: Код типа опроса
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: name
+                  type: VARCHAR
+                  remarks: Полное название типа
+              - column:
+                  name: question
+                  type: VARCHAR
+                  remarks: Текст вопроса для клиента
+              - column:
+                  name: scale_min
+                  type: INT
+                  remarks: Минимальное значение шкалы
+              - column:
+                  name: scale_max
+                  type: INT
+                  remarks: Максимальное значение шкалы
+              - column:
+                  name: formula_description
+                  type: VARCHAR
+                  remarks: Описание формулы расчёта
+              - column:
+                  name: create_time
+                  type: TIMESTAMP
+                  remarks: Время создания записи
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: create_user
+                  type: VARCHAR
+                  remarks: Пользователь, создавший запись
+              - column:
+                  name: last_update_time
+                  type: TIMESTAMP
+                  remarks: Время последнего обновления
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: last_update_user
+                  type: VARCHAR
+                  remarks: Пользователь, последний обновивший запись

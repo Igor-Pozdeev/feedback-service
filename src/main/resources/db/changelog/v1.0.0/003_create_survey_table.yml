@@ -1,0 +1,65 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003_create_survey_table.yml
+      author: pozdeevIY
+      changes:
+        - createTable:
+            tableName: survey
+            remarks: Запрос на прохождение опроса клиентом
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  remarks: Идентификатор опроса
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: campaign_id
+                  type: UUID
+                  remarks: Идентификатор кампании
+              - column:
+                  name: guid
+                  type: VARCHAR
+                  remarks: Идентификатор клиента
+              - column:
+                  name: context_type
+                  type: VARCHAR(50)
+                  remarks: Тип контекста (ORDER, TICKET)
+              - column:
+                  name: context_id
+                  type: VARCHAR
+                  remarks: Идентификатор контекста
+              - column:
+                  name: status
+                  type: VARCHAR(50)
+                  remarks: Статус опроса (PENDING, COMPLETED, EXPIRED)
+              - column:
+                  name: scheduled_at
+                  type: TIMESTAMP
+                  remarks: Планируемое время отправки
+              - column:
+                  name: sent_at
+                  type: TIMESTAMP
+                  remarks: Фактическое время отправки
+              - column:
+                  name: completed_at
+                  type: TIMESTAMP
+                  remarks: Время завершения опроса
+              - column:
+                  name: create_time
+                  type: TIMESTAMP
+                  remarks: Время создания записи
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: create_user
+                  type: VARCHAR
+                  remarks: Пользователь, создавший запись
+              - column:
+                  name: last_update_time
+                  type: TIMESTAMP
+                  remarks: Время последнего обновления
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: last_update_user
+                  type: VARCHAR
+                  remarks: Пользователь, последний обновивший запись
