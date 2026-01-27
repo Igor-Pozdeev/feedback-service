@@ -19,7 +19,7 @@ databaseChangeLog:
                   remarks: Идентификатор кампании
               - column:
                   name: date
-                  type: DATE
+                  type: TIMESTAMP
                   remarks: Дата, за которую собрана метрика
               - column:
                   name: survey_type_code
