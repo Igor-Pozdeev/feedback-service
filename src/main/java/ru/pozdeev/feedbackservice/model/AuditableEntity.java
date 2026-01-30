@@ -8,17 +8,24 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
 @Getter
 @Setter
 @MappedSuperclass
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
 public abstract class AuditableEntity {
 
     public static final String DEFAULT_DB_USER = "system";
 
-    private LocalDateTime createTime;
-    private String createUser;
-    private LocalDateTime lastUpdateTime;
-    private String lastUpdateUser;
+    protected LocalDateTime createTime;
+    protected String createUser;
+    protected LocalDateTime lastUpdateTime;
+    protected String lastUpdateUser;
 
     @PrePersist
     protected void onCreate() {
