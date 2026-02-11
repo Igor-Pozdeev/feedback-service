@@ -39,3 +39,5 @@ out/
 **localdev.properties
 docs
 .cursor
+.cursorrules
+.gigaide

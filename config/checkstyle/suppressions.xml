@@ -41,5 +41,7 @@
     <suppress checks="LineLength" files=".*Constants\.java$" lines="1-9999"/>
 
     <!-- Можно добавить свои исключения по мере необходимости -->
+    <suppress checks="MethodName" files=".*/test/.*"/>
+    <suppress checks="MethodName" files=".*Test\.java$"/>
 
 </suppressions>
