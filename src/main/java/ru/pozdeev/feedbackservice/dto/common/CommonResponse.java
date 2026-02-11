@@ -28,7 +28,7 @@ public class CommonResponse<T> {
         return new CommonResponse<>(data, null);
     }
 
-    public static CommonResponse<Void> error(String code, String message) {
-        return new CommonResponse<>(null, new Error(code, message));
+    public static CommonResponse<Void> error(String code) {
+        return new CommonResponse<>(null, new Error(code));
     }
 }
