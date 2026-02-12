@@ -1,8 +1,0 @@
-databaseChangeLog:
-  - changeSet:
-      id: 007_add_campaign_data.yml
-      author: pozdeevIY
-      changes:
-        - sqlFile:
-            path: sql/20260125_insert_campaign_data.sql
-            relativeToChangelogFile: true

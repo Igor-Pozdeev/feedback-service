@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@Sql("/sql/test-data.sql")
+@Sql("/sql/insert_test_data.sql")
 class FeedbackControllerTest extends AbstractTest {
 
     private static final String BASE_PATH = "/api/v1/feedback";
