@@ -1,8 +1,0 @@
-databaseChangeLog:
-  - changeSet:
-      id: 006_add_survey_type_data.yml
-      author: pozdeevIY
-      changes:
-        - sqlFile:
-            path: sql/20260125_insert_survey_type_data.sql
-            relativeToChangelogFile: true
