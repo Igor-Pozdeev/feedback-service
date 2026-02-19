@@ -9,6 +9,7 @@ import ru.pozdeev.feedbackservice.dto.event.CustomerEvent;
 import ru.pozdeev.feedbackservice.mapper.SurveyMapper;
 import ru.pozdeev.feedbackservice.model.Campaign;
 import ru.pozdeev.feedbackservice.model.Survey;
+import ru.pozdeev.feedbackservice.exception.InvalidCustomerEventException;
 import ru.pozdeev.feedbackservice.model.TriggerType;
 import ru.pozdeev.feedbackservice.repository.CampaignRepository;
 import ru.pozdeev.feedbackservice.repository.SurveyRepository;
@@ -26,12 +27,31 @@ public class SurveyCreationServiceImpl implements SurveyCreationService {
     @Override
     @Transactional
     public void processCustomerEvent(CustomerEvent event) {
+        validateEvent(event);
+
         TriggerType triggerType = event.eventType();
         List<Campaign> activeCampaigns = campaignRepository.findAllByTriggerTypeAndActiveIsTrue(triggerType);
 
         activeCampaigns.stream()
                 .filter(campaign -> !surveyRepository.existsByContextIdAndCampaignId(event.contextId(), campaign.getId()))
                 .forEach(campaign -> saveSurvey(event, campaign));
+    }
+
+    private void validateEvent(CustomerEvent event) {
+        if (TriggerType.TICKET_CLOSED.equals(event.eventType())) {
+            if (event.metadata() == null || !event.metadata().containsKey("resolution_time_hours")) {
+                throw new InvalidCustomerEventException(
+                        "Для события TICKET_CLOSED поле metadata.resolution_time_hours является обязательным"
+                );
+            }
+        }
+        if (TriggerType.ORDER_COMPLETED.equals(event.eventType())) {
+            if (event.metadata() == null || !event.metadata().containsKey("order_total")) {
+                throw new InvalidCustomerEventException(
+                        "Для события ORDER_COMPLETED поле metadata.order_total является обязательным"
+                );
+            }
+        }
     }
 
     private void saveSurvey(CustomerEvent event, Campaign campaign) {
