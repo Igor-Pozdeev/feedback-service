@@ -8,11 +8,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import ru.pozdeev.feedbackservice.dto.FindSurveysResponse;
 import ru.pozdeev.feedbackservice.dto.SubmitFeedbackRequest;
 import ru.pozdeev.feedbackservice.dto.SubmitFeedbackResponse;
+import ru.pozdeev.feedbackservice.dto.SurveyResponse;
 import ru.pozdeev.feedbackservice.exception.BusinessException;
 import ru.pozdeev.feedbackservice.exception.NotFoundException;
 import ru.pozdeev.feedbackservice.mapper.FeedbackMapper;
+import ru.pozdeev.feedbackservice.mapper.SurveyMapper;
 import ru.pozdeev.feedbackservice.model.Campaign;
 import ru.pozdeev.feedbackservice.model.CustomerFeedback;
 import ru.pozdeev.feedbackservice.model.Survey;
@@ -24,6 +27,8 @@ import ru.pozdeev.feedbackservice.repository.SurveyRepository;
 import ru.pozdeev.feedbackservice.repository.SurveyTypeRepository;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -56,6 +61,8 @@ class FeedbackServiceImplTest {
     private SurveyTypeRepository surveyTypeRepository;
     @Mock
     private FeedbackMapper feedbackMapper;
+    @Mock
+    private SurveyMapper surveyMapper;
 
     @InjectMocks
     private FeedbackServiceImpl feedbackService;
@@ -222,5 +229,53 @@ class FeedbackServiceImplTest {
 
         verifyNoInteractions(customerFeedbackRepository, feedbackMapper);
         verify(surveyRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Получение списка доступных опросов, когда они есть")
+    void getPendingSurveys_whenSurveysExist_thenReturnsSurveyList() {
+        // Arrange
+        String guid = "test-guid";
+
+        Survey survey1 = new Survey();
+        survey1.setId(UUID.randomUUID());
+        survey1.setCampaignId(CAMPAIGN_ID);
+        survey1.setSentAt(null);
+
+        List<Survey> surveys = List.of(survey1);
+
+        Campaign campaign1 = new Campaign();
+        campaign1.setId(CAMPAIGN_ID);
+        campaign1.setSurveyTypeCode(SURVEY_TYPE_CODE);
+
+        SurveyType surveyType1 = new SurveyType();
+        surveyType1.setCode(SURVEY_TYPE_CODE);
+
+        when(surveyRepository.findByGuidAndStatusAndScheduledAtBeforeOrderByScheduledAtDesc(
+                any(String.class), any(SurveyStatus.class), any(LocalDateTime.class)))
+                .thenReturn(surveys);
+
+        when(campaignRepository.findAllById(any())).thenReturn(List.of(campaign1));
+        when(surveyTypeRepository.findAllById(any())).thenReturn(List.of(surveyType1));
+
+        SurveyResponse response1 = new SurveyResponse();
+        response1.setSurveyId(survey1.getId());
+
+        when(surveyMapper.toSurveyResponse(survey1, campaign1, surveyType1)).thenReturn(response1);
+
+        // Act
+        FindSurveysResponse result = feedbackService.getPendingSurveys(guid);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getSurveys()).hasSize(1);
+        assertThat(result.getSurveys().get(0).getSurveyId()).isEqualTo(survey1.getId());
+        assertThat(survey1.getSentAt()).isNotNull();
+
+        verify(surveyRepository).findByGuidAndStatusAndScheduledAtBeforeOrderByScheduledAtDesc(
+                any(String.class), any(SurveyStatus.class), any(LocalDateTime.class));
+        verify(campaignRepository).findAllById(any());
+        verify(surveyTypeRepository).findAllById(any());
+        verify(surveyMapper).toSurveyResponse(survey1, campaign1, surveyType1);
     }
 }
