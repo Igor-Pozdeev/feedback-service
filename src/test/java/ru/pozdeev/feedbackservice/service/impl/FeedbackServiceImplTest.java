@@ -27,7 +27,6 @@ import ru.pozdeev.feedbackservice.repository.SurveyRepository;
 import ru.pozdeev.feedbackservice.repository.SurveyTypeRepository;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

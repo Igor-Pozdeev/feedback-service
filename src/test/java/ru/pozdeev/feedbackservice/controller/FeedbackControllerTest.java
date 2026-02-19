@@ -35,7 +35,6 @@ class FeedbackControllerTest extends AbstractTest {
     private static final String GUID_WITH_NO_SURVEYS = "guid-no-surveys";
     private static final String BLANK_GUID = " ";
 
-
     @Test
     @DisplayName("Успешная отправка отзыва")
     void submitFeedback_whenRequestIsValid_shouldReturnSuccess() throws Exception {
@@ -101,8 +100,8 @@ class FeedbackControllerTest extends AbstractTest {
 
     private static Stream<Arguments> invalidRequestProvider() {
         return Stream.of(
-                Arguments.of(new SubmitFeedbackRequest(null, 5, "comment"), "Идентификатор опроса не может быть пустым"),
-                Arguments.of(new SubmitFeedbackRequest(PENDING_SURVEY_ID, null, "comment"), "Оценка не может быть пустой")
+                Arguments.of(new SubmitFeedbackRequest(null, 5, "comment"), "data.surveyId: Идентификатор опроса не может быть пустым"),
+                Arguments.of(new SubmitFeedbackRequest(PENDING_SURVEY_ID, null, "comment"), "data.score: Оценка не может быть пустой")
         );
     }
 

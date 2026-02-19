@@ -21,11 +21,13 @@ public class SurveyResponse {
     /**
      * ID опроса.
      */
+    @JsonProperty("surveyId")
     private UUID surveyId;
 
     /**
      * ID кампании.
      */
+    @JsonProperty("campaignId")
     private UUID campaignId;
 
     /**
@@ -56,5 +58,6 @@ public class SurveyResponse {
     /**
      * Время отправки опроса.
      */
+    @JsonProperty("sentAt")
     private LocalDateTime sentAt;
 }

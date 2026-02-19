@@ -18,6 +18,10 @@
     <suppress checks="MethodLength" files=".*Test\.java$"/>
     <suppress checks="MethodLength" files=".*/test/.*"/>
 
+    <!-- Отключить проверку длины файлов для тестов (тесты могут быть длиннее) -->
+    <suppress checks="FileLength" files=".*Test\.java$"/>
+    <suppress checks="FileLength" files=".*/test/.*"/>
+
     <!-- Отключить проверку Javadoc для тестов -->
     <suppress checks="JavadocType" files=".*Test\.java$"/>
     <suppress checks="JavadocType" files=".*/test/.*"/>
