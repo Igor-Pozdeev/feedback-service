@@ -4,11 +4,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.pozdeev.feedbackservice.dto.FindSurveysResponse;
 import ru.pozdeev.feedbackservice.dto.SubmitFeedbackRequest;
 import ru.pozdeev.feedbackservice.dto.SubmitFeedbackResponse;
 import ru.pozdeev.feedbackservice.exception.BusinessException;
 import ru.pozdeev.feedbackservice.exception.NotFoundException;
 import ru.pozdeev.feedbackservice.mapper.FeedbackMapper;
+import ru.pozdeev.feedbackservice.mapper.SurveyMapper;
 import ru.pozdeev.feedbackservice.model.Campaign;
 import ru.pozdeev.feedbackservice.model.CustomerFeedback;
 import ru.pozdeev.feedbackservice.model.Survey;
@@ -21,7 +23,12 @@ import ru.pozdeev.feedbackservice.repository.SurveyTypeRepository;
 import ru.pozdeev.feedbackservice.service.FeedbackService;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -33,6 +40,7 @@ public class FeedbackServiceImpl implements FeedbackService {
     private final CampaignRepository campaignRepository;
     private final SurveyTypeRepository surveyTypeRepository;
     private final FeedbackMapper feedbackMapper;
+    private final SurveyMapper surveyMapper;
 
     @SuppressWarnings("checkstyle:MethodLength")
     @Override
@@ -68,6 +76,60 @@ public class FeedbackServiceImpl implements FeedbackService {
                 request.getSurveyId(), feedback.getId());
 
         return feedbackMapper.toSubmitFeedbackResponse(feedback);
+    }
+
+    @Override
+    @Transactional
+    public FindSurveysResponse getPendingSurveys(String guid) {
+        LocalDateTime now = LocalDateTime.now();
+
+        List<Survey> pendingSurveys = surveyRepository
+                .findByGuidAndStatusAndScheduledAtBeforeOrderByScheduledAtDesc(
+                        guid, SurveyStatus.PENDING, now
+                );
+
+        if (pendingSurveys.isEmpty()) {
+            throw new BusinessException("Непройденные опросы для guid=" + guid + " не найдены");
+        }
+
+        // Update sentAt for surveys where it's null
+        pendingSurveys.stream()
+                .filter(survey -> survey.getSentAt() == null)
+                .forEach(survey -> survey.setSentAt(now));
+
+        // Efficiently fetch related entities
+        List<UUID> campaignIds = pendingSurveys.stream()
+                .map(Survey::getCampaignId)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<UUID, Campaign> campaignsById = campaignRepository.findAllById(campaignIds).stream()
+                .collect(Collectors.toMap(Campaign::getId, Function.identity()));
+
+        List<String> surveyTypeCodes = campaignsById.values().stream()
+                .map(Campaign::getSurveyTypeCode)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<String, SurveyType> surveyTypesByCode = surveyTypeRepository.findAllById(surveyTypeCodes).stream()
+                .collect(Collectors.toMap(SurveyType::getCode, Function.identity()));
+
+
+        // Map to response DTOs
+        List<ru.pozdeev.feedbackservice.dto.SurveyResponse> surveyResponses = pendingSurveys.stream()
+                .map(survey -> {
+                    Campaign campaign = campaignsById.get(survey.getCampaignId());
+                    if (campaign == null) {
+                        return null;
+                    }
+                    SurveyType surveyType = surveyTypesByCode.get(campaign.getSurveyTypeCode());
+                    if (surveyType == null) {
+                        return null;
+                    }
+                    return surveyMapper.toSurveyResponse(survey, campaign, surveyType);
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        return new FindSurveysResponse(surveyResponses);
     }
 
     private void validateScore(Integer score, SurveyType surveyType) {
