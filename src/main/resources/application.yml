@@ -6,6 +6,8 @@ server:
 spring:
   application:
     name: feedback
+  jackson:
+    property-naming-strategy: SNAKE_CASE
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
     username: ${POSTGRES_USER}
@@ -22,3 +24,23 @@ spring:
   liquibase:
     change-log: classpath:db/changelog/changelog-master.yml
     contexts: postgres
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: feedback
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: ru.pozdeev.feedbackservice.dto.event.CustomerEvent
+
+feedback:
+  kafka:
+    consumer:
+      group-id: feedback
+      customer-events:
+        enabled: true
+        topic: customer-events.V1
