@@ -22,28 +22,10 @@ import ru.pozdeev.feedbackservice.service.FeedbackService;
 public abstract class AbstractTest {
 
     @Container
-    static PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:latest")
+    protected static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:latest")
             .withDatabaseName("postgres-test")
             .withUsername("usernameee")
             .withPassword("paswddd");
-
-    @BeforeAll
-    static void beforeAll() {
-        POSTGRES.start();
-    }
-
-    @AfterAll
-    static void afterAll() {
-        POSTGRES.stop();
-    }
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-    }
-
 
     @Autowired
     protected MockMvc mockMvc;
@@ -53,4 +35,21 @@ public abstract class AbstractTest {
 
     @Autowired
     protected FeedbackService service;
+
+    @BeforeAll
+    static void beforeAll() {
+        postgres.start();
+    }
+
+    @AfterAll
+    static void afterAll() {
+        postgres.stop();
+    }
+
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+        registry.add("spring.datasource.username", postgres::getUsername);
+        registry.add("spring.datasource.password", postgres::getPassword);
+    }
 }

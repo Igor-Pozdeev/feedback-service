@@ -1,5 +1,6 @@
 package ru.pozdeev.feedbackservice.repository;
 
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import ru.pozdeev.feedbackservice.model.Survey;
@@ -20,4 +21,6 @@ public interface SurveyRepository extends JpaRepository<Survey, UUID> {
             SurveyStatus status,
             LocalDateTime scheduledAt
     );
+
+    boolean existsByContextIdAndCampaignId(@NotBlank String s, UUID id);
 }

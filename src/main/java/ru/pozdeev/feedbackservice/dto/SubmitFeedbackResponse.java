@@ -1,5 +1,6 @@
 package ru.pozdeev.feedbackservice.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
@@ -20,6 +21,7 @@ public class SubmitFeedbackResponse {
     private Boolean success;
 
     @NotNull
+    @JsonProperty("feedbackId")
     @Schema(description = "Идентификатор сохраненного отзыва", example = "a1b2c3d4-e5f6-7890-1234-567890abcdef")
     private UUID feedbackId;
 

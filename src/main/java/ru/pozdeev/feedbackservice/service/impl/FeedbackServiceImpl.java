@@ -1,5 +1,7 @@
 package ru.pozdeev.feedbackservice.service.impl;
 
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -7,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.pozdeev.feedbackservice.dto.FindSurveysResponse;
 import ru.pozdeev.feedbackservice.dto.SubmitFeedbackRequest;
 import ru.pozdeev.feedbackservice.dto.SubmitFeedbackResponse;
+import ru.pozdeev.feedbackservice.dto.SurveyResponse;
 import ru.pozdeev.feedbackservice.exception.BusinessException;
 import ru.pozdeev.feedbackservice.exception.NotFoundException;
 import ru.pozdeev.feedbackservice.mapper.FeedbackMapper;
@@ -83,53 +86,74 @@ public class FeedbackServiceImpl implements FeedbackService {
     public FindSurveysResponse getPendingSurveys(String guid) {
         LocalDateTime now = LocalDateTime.now();
 
-        List<Survey> pendingSurveys = surveyRepository
-                .findByGuidAndStatusAndScheduledAtBeforeOrderByScheduledAtDesc(
-                        guid, SurveyStatus.PENDING, now
-                );
+        List<Survey> pendingSurveys = getPendingSurveys(guid, now);
 
         if (pendingSurveys.isEmpty()) {
             throw new BusinessException("Непройденные опросы для guid=" + guid + " не найдены");
         }
+        updateifsentAtIsNull(pendingSurveys, now);
 
-        // Update sentAt for surveys where it's null
-        pendingSurveys.stream()
-                .filter(survey -> survey.getSentAt() == null)
-                .forEach(survey -> survey.setSentAt(now));
+        Map<UUID, Campaign> campaignsById = getCampaignsById(pendingSurveys);
+        Map<String, SurveyType> surveyTypesByCode = getSurveyTypes(getSurveyTypeCodes(campaignsById));
 
-        // Efficiently fetch related entities
-        List<UUID> campaignIds = pendingSurveys.stream()
-                .map(Survey::getCampaignId)
-                .distinct()
-                .collect(Collectors.toList());
-        Map<UUID, Campaign> campaignsById = campaignRepository.findAllById(campaignIds).stream()
-                .collect(Collectors.toMap(Campaign::getId, Function.identity()));
-
-        List<String> surveyTypeCodes = campaignsById.values().stream()
-                .map(Campaign::getSurveyTypeCode)
-                .distinct()
-                .collect(Collectors.toList());
-        Map<String, SurveyType> surveyTypesByCode = surveyTypeRepository.findAllById(surveyTypeCodes).stream()
-                .collect(Collectors.toMap(SurveyType::getCode, Function.identity()));
-
-
-        // Map to response DTOs
         List<ru.pozdeev.feedbackservice.dto.SurveyResponse> surveyResponses = pendingSurveys.stream()
-                .map(survey -> {
-                    Campaign campaign = campaignsById.get(survey.getCampaignId());
-                    if (campaign == null) {
-                        return null;
-                    }
-                    SurveyType surveyType = surveyTypesByCode.get(campaign.getSurveyTypeCode());
-                    if (surveyType == null) {
-                        return null;
-                    }
-                    return surveyMapper.toSurveyResponse(survey, campaign, surveyType);
-                })
+                .map(survey -> getSurveyResponse(survey, campaignsById, surveyTypesByCode))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
         return new FindSurveysResponse(surveyResponses);
+    }
+
+    @Nullable
+    private SurveyResponse getSurveyResponse(Survey survey, Map<UUID, Campaign> campaignsById, Map<String, SurveyType> surveyTypesByCode) {
+        Campaign campaign = campaignsById.get(survey.getCampaignId());
+        if (campaign == null) {
+            return null;
+        }
+        SurveyType surveyType = surveyTypesByCode.get(campaign.getSurveyTypeCode());
+        if (surveyType == null) {
+            return null;
+        }
+        return surveyMapper.toSurveyResponse(survey, campaign, surveyType);
+    }
+
+    @Nonnull
+    private Map<String, SurveyType> getSurveyTypes(List<String> surveyTypeCodes) {
+        return surveyTypeRepository.findAllById(surveyTypeCodes).stream()
+                .collect(Collectors.toMap(SurveyType::getCode, Function.identity()));
+    }
+
+    private List<Survey> getPendingSurveys(String guid, LocalDateTime now) {
+        return surveyRepository
+                .findByGuidAndStatusAndScheduledAtBeforeOrderByScheduledAtDesc(
+                        guid, SurveyStatus.PENDING, now
+                );
+    }
+
+    @Nonnull
+    private Map<UUID, Campaign> getCampaignsById(List<Survey> pendingSurveys) {
+        List<UUID> campaignIds = pendingSurveys.stream()
+                .map(Survey::getCampaignId)
+                .distinct()
+                .collect(Collectors.toList());
+        return campaignRepository.findAllById(campaignIds).stream()
+                .collect(Collectors.toMap(Campaign::getId, Function.identity()));
+    }
+
+    @Nonnull
+    private List<String> getSurveyTypeCodes(Map<UUID, Campaign> campaignsById) {
+        List<String> surveyTypeCodes = campaignsById.values().stream()
+                .map(Campaign::getSurveyTypeCode)
+                .distinct()
+                .collect(Collectors.toList());
+        return surveyTypeCodes;
+    }
+
+    private static void updateifsentAtIsNull(List<Survey> pendingSurveys, LocalDateTime now) {
+        // Update sentAt for surveys where it's null
+        pendingSurveys.stream()
+                .filter(survey -> survey.getSentAt() == null)
+                .forEach(survey -> survey.setSentAt(now));
     }
 
     private void validateScore(Integer score, SurveyType surveyType) {
