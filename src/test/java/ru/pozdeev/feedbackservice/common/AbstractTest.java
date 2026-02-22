@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -13,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import ru.pozdeev.feedbackservice.repository.CampaignRepository;
 import ru.pozdeev.feedbackservice.service.FeedbackService;
 
 @Testcontainers
@@ -35,6 +37,12 @@ public abstract class AbstractTest {
 
     @Autowired
     protected FeedbackService service;
+
+    @Autowired
+    protected KafkaTemplate<String, String> kafkaTemplate;
+
+    @Autowired
+    private CampaignRepository campaignRepository;
 
     @BeforeAll
     static void beforeAll() {
