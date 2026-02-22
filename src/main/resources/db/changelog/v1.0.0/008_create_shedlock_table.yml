@@ -1,0 +1,27 @@
+databaseChangeLog:
+  - changeSet:
+      id: 008_create_shedlock_table.yml
+      author: pozdeevIY
+      changes:
+        - createTable:
+            tableName: shedlock
+            remarks: Таблица блокировок для ShedLock
+            columns:
+              - column:
+                  name: name
+                  type: VARCHAR(64)
+                  remarks: Имя блокировки
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: lock_until
+                  type: TIMESTAMP
+                  remarks: Время окончания блокировки
+              - column:
+                  name: locked_at
+                  type: TIMESTAMP
+                  remarks: Время установки блокировки
+              - column:
+                  name: locked_by
+                  type: VARCHAR(255)
+                  remarks: Идентификатор владельца блокировки
