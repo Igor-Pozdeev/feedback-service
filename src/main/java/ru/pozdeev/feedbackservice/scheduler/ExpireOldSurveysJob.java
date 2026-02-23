@@ -17,12 +17,12 @@ public class ExpireOldSurveysJob {
     @Scheduled(cron = "0 0 1 * * ?") // Run at 01:00 daily
     @SchedulerLock(name = "expireOldSurveys")
     public void run() {
-        log.info("Starting scheduled job to expire old surveys.");
+        log.info("Starting scheduled job to expire old surveys");
         try {
             int expiredCount = surveyExpirationService.expireOldSurveys();
-            log.info("Scheduled job finished. Expired {} surveys.", expiredCount);
+            log.info("Scheduled job finished, expired {} surveys", expiredCount);
         } catch (Exception e) {
-            log.error("Error during scheduled job to expire old surveys.", e);
+            log.error("Error during scheduled job to expire old surveys", e);
         }
     }
 }

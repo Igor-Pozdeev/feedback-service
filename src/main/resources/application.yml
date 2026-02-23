@@ -27,6 +27,12 @@ spring:
 
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
     consumer:
       group-id: feedback
       auto-offset-reset: earliest
@@ -45,6 +51,11 @@ feedback:
   sent-survey-expiry-days: 7
   unsent-survey-expiry-days: 60
   kafka:
+    producer:
+      daily-metrics:
+        enabled: true
+        topic: daily-metrics.V1
+        sending-timeout-sec: 5
     consumer:
       group-id: feedback
       customer-events:
