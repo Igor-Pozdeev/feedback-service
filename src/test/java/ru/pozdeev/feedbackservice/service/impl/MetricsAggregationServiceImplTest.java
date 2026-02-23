@@ -214,7 +214,7 @@ class MetricsAggregationServiceImplTest {
         ArgumentCaptor<DailyMetrics> metricsCaptor = ArgumentCaptor.forClass(DailyMetrics.class);
         verify(dailyMetricsRepository).save(metricsCaptor.capture());
         DailyMetrics savedMetrics = metricsCaptor.getValue();
-        
+
         assertThat(savedMetrics.getId()).isEqualTo(existingMetricsId);
         assertThat(savedMetrics.getCreateTime()).isEqualTo(existingCreateTime);
         assertThat(savedMetrics.getCreateUser()).isEqualTo(existingCreateUser);

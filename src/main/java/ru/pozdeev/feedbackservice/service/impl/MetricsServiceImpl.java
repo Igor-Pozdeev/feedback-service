@@ -60,7 +60,7 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     private Specification<DailyMetrics> buildSpecification(FilterMetricsRequest request) {
-        return Specification.where(DailyMetricsSpecification.hasCampaignId(request.getCampaignId()))
+        return DailyMetricsSpecification.hasCampaignId(request.getCampaignId())
                 .and(DailyMetricsSpecification.hasSurveyTypeCode(request.getType()))
                 .and(DailyMetricsSpecification.hasDateFrom(request.getDateFrom()))
                 .and(DailyMetricsSpecification.hasDateTo(request.getDateTo()));
@@ -105,32 +105,39 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     private LocalDate[] calculatePeriod(List<DailyMetrics> metrics, FilterMetricsRequest request) {
-        LocalDate periodFrom = request.getDateFrom();
-        LocalDate periodTo = request.getDateTo();
-
-        if (periodFrom == null && !metrics.isEmpty()) {
-            periodFrom = metrics.stream()
-                    .map(m -> m.getDate().toLocalDate())
-                    .min(LocalDate::compareTo)
-                    .orElse(null);
-        }
-
-        if (periodTo == null && !metrics.isEmpty()) {
-            periodTo = metrics.stream()
-                    .map(m -> m.getDate().toLocalDate())
-                    .max(LocalDate::compareTo)
-                    .orElse(null);
-        }
-
-        // Если дат нет ни в запросе, ни в данных, используем текущую дату, чтобы избежать null
-        if (periodFrom == null) {
-            periodFrom = LocalDate.now();
-        }
-
-        if (periodTo == null) {
-            periodTo = LocalDate.now();
-        }
+        LocalDate periodFrom = getPeriodFrom(metrics, request);
+        LocalDate periodTo = getPeriodTo(metrics, request);
 
         return new LocalDate[]{periodFrom, periodTo};
+    }
+
+    private LocalDate getPeriodFrom(List<DailyMetrics> metrics, FilterMetricsRequest request) {
+        if (request.getDateFrom() != null) {
+            return request.getDateFrom();
+        }
+
+        if (metrics.isEmpty()) {
+            return LocalDate.now();
+        }
+
+        return metrics.stream()
+                .map(m -> m.getDate().toLocalDate())
+                .min(LocalDate::compareTo)
+                .orElse(LocalDate.now());
+    }
+
+    private LocalDate getPeriodTo(List<DailyMetrics> metrics, FilterMetricsRequest request) {
+        if (request.getDateTo() != null) {
+            return request.getDateTo();
+        }
+
+        if (metrics.isEmpty()) {
+            return LocalDate.now();
+        }
+
+        return metrics.stream()
+                .map(m -> m.getDate().toLocalDate())
+                .max(LocalDate::compareTo)
+                .orElse(LocalDate.now());
     }
 }
