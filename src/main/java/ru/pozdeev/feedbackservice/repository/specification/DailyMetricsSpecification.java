@@ -1,7 +1,5 @@
 package ru.pozdeev.feedbackservice.repository.specification;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
 import ru.pozdeev.feedbackservice.model.DailyMetrics;
 
@@ -12,8 +10,10 @@ import java.util.UUID;
 /**
  * Спецификация для динамической фильтрации ежедневных метрик
  */
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class DailyMetricsSpecification {
+
+    private DailyMetricsSpecification() {
+    }
 
     /**
      * Фильтрация по идентификатору кампании

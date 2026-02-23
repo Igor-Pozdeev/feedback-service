@@ -18,6 +18,7 @@ import ru.pozdeev.feedbackservice.model.SurveyType;
 public interface SurveyMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "sentAt", ignore = true)
+    @Mapping(target = "completedAt", ignore = true)
     @Mapping(target = "campaignId", source = "campaign.id")
     @Mapping(target = "guid", source = "event.guid")
     @Mapping(target = "contextType", source = "event.contextType")
