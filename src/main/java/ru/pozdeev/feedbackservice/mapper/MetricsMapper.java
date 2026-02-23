@@ -2,6 +2,7 @@ package ru.pozdeev.feedbackservice.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import ru.pozdeev.feedbackservice.dto.MetricResponse;
 import ru.pozdeev.feedbackservice.dto.event.DailyMetricsEvent;
 import ru.pozdeev.feedbackservice.model.DailyMetrics;
 
@@ -22,4 +23,15 @@ public interface MetricsMapper {
     @Mapping(target = "detractors", source = "dailyMetrics.detractors")
     @Mapping(target = "timestamp", source = "timestamp")
     DailyMetricsEvent toDailyMetricsEvent(DailyMetrics dailyMetrics, String campaignName, LocalDateTime timestamp);
+
+    @Mapping(target = "campaignId", source = "dailyMetrics.campaignId")
+    @Mapping(target = "campaignName", source = "campaignName")
+    @Mapping(target = "date", expression = "java(dailyMetrics.getDate().toLocalDate())")
+    @Mapping(target = "type", source = "dailyMetrics.surveyTypeCode")
+    @Mapping(target = "totalResponses", source = "dailyMetrics.totalResponses")
+    @Mapping(target = "scoreValue", source = "dailyMetrics.scoreValue")
+    @Mapping(target = "promoters", source = "dailyMetrics.promoters")
+    @Mapping(target = "passives", source = "dailyMetrics.passives")
+    @Mapping(target = "detractors", source = "dailyMetrics.detractors")
+    MetricResponse toMetricResponse(DailyMetrics dailyMetrics, String campaignName);
 }
