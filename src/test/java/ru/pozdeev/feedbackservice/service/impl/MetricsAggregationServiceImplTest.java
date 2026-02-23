@@ -183,18 +183,24 @@ class MetricsAggregationServiceImplTest {
     }
 
     @Test
-    @DisplayName("Обновление существующей метрики")
-    void aggregateMetricsForDate_whenMetricsExist_thenUpdate() {
+    @DisplayName("Обновление существующей метрики с сохранением аудит-полей")
+    void aggregateMetricsForDate_whenMetricsExist_thenPreserveAuditFields() {
         // Arrange
         LocalDate date = LocalDate.of(2026, 2, 22);
         UUID campaignId = UUID.randomUUID();
         UUID surveyId = UUID.randomUUID();
         UUID existingMetricsId = UUID.randomUUID();
+        LocalDateTime existingCreateTime = LocalDateTime.now().minusDays(1);
+        String existingCreateUser = "original_user";
 
         CustomerFeedback f = CustomerFeedback.builder().surveyId(surveyId).score(5).build();
         Survey s = Survey.builder().id(surveyId).campaignId(campaignId).build();
         Campaign campaign = Campaign.builder().id(campaignId).surveyTypeCode("CSAT").name("CSAT Campaign").build();
-        DailyMetrics existingMetrics = DailyMetrics.builder().id(existingMetricsId).build();
+        DailyMetrics existingMetrics = DailyMetrics.builder()
+                .id(existingMetricsId)
+                .createTime(existingCreateTime)
+                .createUser(existingCreateUser)
+                .build();
 
         when(customerFeedbackRepository.findByCreateTimeBetween(any(), any())).thenReturn(List.of(f));
         when(surveyRepository.findAllById(any())).thenReturn(List.of(s));
@@ -207,6 +213,10 @@ class MetricsAggregationServiceImplTest {
         // Assert
         ArgumentCaptor<DailyMetrics> metricsCaptor = ArgumentCaptor.forClass(DailyMetrics.class);
         verify(dailyMetricsRepository).save(metricsCaptor.capture());
-        assertThat(metricsCaptor.getValue().getId()).isEqualTo(existingMetricsId);
+        DailyMetrics savedMetrics = metricsCaptor.getValue();
+        
+        assertThat(savedMetrics.getId()).isEqualTo(existingMetricsId);
+        assertThat(savedMetrics.getCreateTime()).isEqualTo(existingCreateTime);
+        assertThat(savedMetrics.getCreateUser()).isEqualTo(existingCreateUser);
     }
 }

@@ -90,7 +90,11 @@ public class MetricsAggregationServiceImpl implements MetricsAggregationService 
 
     private void saveAndSendMetrics(DailyMetrics metrics, String campaignName, LocalDateTime now) {
         dailyMetricsRepository.findByCampaignIdAndDate(metrics.getCampaignId(), metrics.getDate())
-                .ifPresent(existing -> metrics.setId(existing.getId()));
+                .ifPresent(existing -> {
+                    metrics.setId(existing.getId());
+                    metrics.setCreateTime(existing.getCreateTime());
+                    metrics.setCreateUser(existing.getCreateUser());
+                });
 
         dailyMetricsRepository.save(metrics);
         DailyMetricsEvent event = metricsMapper.toDailyMetricsEvent(metrics, campaignName, now);
