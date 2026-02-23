@@ -33,6 +33,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MetricsAggregationServiceImpl implements MetricsAggregationService {
 
+    private static final int SCALE_4 = 4;
+    private static final int SCALE_2 = 2;
+    private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
+    private static final int NPS_PROMOTER_MIN_SCORE = 9;
+    private static final int NPS_PASSIVE_MIN_SCORE = 7;
+    private static final int CSAT_SATISFIED_MIN_SCORE = 4;
+
     private final CustomerFeedbackRepository customerFeedbackRepository;
     private final SurveyRepository surveyRepository;
     private final CampaignRepository campaignRepository;
@@ -55,8 +62,12 @@ public class MetricsAggregationServiceImpl implements MetricsAggregationService 
             return;
         }
 
-        Map<UUID, List<CustomerFeedback>> feedbacksByCampaign = groupFeedbacksByCampaign(feedbacks);
+        processFeedbacks(feedbacks, date);
+        log.info("Finished metrics aggregation for date: {}", date);
+    }
 
+    private void processFeedbacks(List<CustomerFeedback> feedbacks, LocalDate date) {
+        Map<UUID, List<CustomerFeedback>> feedbacksByCampaign = groupFeedbacksByCampaign(feedbacks);
         Set<UUID> campaignIds = feedbacksByCampaign.keySet();
         Map<UUID, Campaign> campaignsMap = campaignRepository.findAllById(campaignIds).stream()
                 .collect(Collectors.toMap(Campaign::getId, Function.identity()));
@@ -65,7 +76,6 @@ public class MetricsAggregationServiceImpl implements MetricsAggregationService 
 
         for (Map.Entry<UUID, List<CustomerFeedback>> entry : feedbacksByCampaign.entrySet()) {
             UUID campaignId = entry.getKey();
-            List<CustomerFeedback> campaignFeedbacks = entry.getValue();
             Campaign campaign = campaignsMap.get(campaignId);
 
             if (campaign == null) {
@@ -73,17 +83,18 @@ public class MetricsAggregationServiceImpl implements MetricsAggregationService 
                 continue;
             }
 
-            DailyMetrics metrics = calculateMetrics(campaign, date, campaignFeedbacks);
-            dailyMetricsRepository.findByCampaignIdAndDate(campaignId, startOfDay)
-                    .ifPresent(existing -> metrics.setId(existing.getId()));
-
-            dailyMetricsRepository.save(metrics);
-
-            DailyMetricsEvent event = metricsMapper.toDailyMetricsEvent(metrics, campaign.getName(), now);
-            dailyMetricsProducer.send(event);
+            DailyMetrics metrics = calculateMetrics(campaign, date, entry.getValue());
+            saveAndSendMetrics(metrics, campaign.getName(), now);
         }
+    }
 
-        log.info("Finished metrics aggregation for date: {}", date);
+    private void saveAndSendMetrics(DailyMetrics metrics, String campaignName, LocalDateTime now) {
+        dailyMetricsRepository.findByCampaignIdAndDate(metrics.getCampaignId(), metrics.getDate())
+                .ifPresent(existing -> metrics.setId(existing.getId()));
+
+        dailyMetricsRepository.save(metrics);
+        DailyMetricsEvent event = metricsMapper.toDailyMetricsEvent(metrics, campaignName, now);
+        dailyMetricsProducer.send(event);
     }
 
     private Map<UUID, List<CustomerFeedback>> groupFeedbacksByCampaign(List<CustomerFeedback> feedbacks) {
@@ -100,20 +111,24 @@ public class MetricsAggregationServiceImpl implements MetricsAggregationService 
 
     private DailyMetrics calculateMetrics(Campaign campaign, LocalDate date, List<CustomerFeedback> feedbacks) {
         String surveyType = campaign.getSurveyTypeCode();
-        int total = feedbacks.size();
 
         DailyMetrics metrics = DailyMetrics.builder()
                 .campaignId(campaign.getId())
                 .date(date.atStartOfDay())
                 .surveyTypeCode(surveyType)
-                .totalResponses(total)
+                .totalResponses(feedbacks.size())
                 .build();
 
-        if (total == 0) {
+        if (feedbacks.isEmpty()) {
             metrics.setScoreValue(BigDecimal.ZERO);
             return metrics;
         }
 
+        applyCalculationLogic(metrics, feedbacks, surveyType);
+        return metrics;
+    }
+
+    private void applyCalculationLogic(DailyMetrics metrics, List<CustomerFeedback> feedbacks, String surveyType) {
         switch (surveyType) {
             case "NPS" -> calculateNps(metrics, feedbacks);
             case "CSAT" -> calculateCsat(metrics, feedbacks);
@@ -123,8 +138,6 @@ public class MetricsAggregationServiceImpl implements MetricsAggregationService 
                 metrics.setScoreValue(BigDecimal.ZERO);
             }
         }
-
-        return metrics;
     }
 
     private void calculateNps(DailyMetrics metrics, List<CustomerFeedback> feedbacks) {
@@ -134,9 +147,9 @@ public class MetricsAggregationServiceImpl implements MetricsAggregationService 
 
         for (CustomerFeedback feedback : feedbacks) {
             int score = feedback.getScore();
-            if (score >= 9) {
+            if (score >= NPS_PROMOTER_MIN_SCORE) {
                 promoters++;
-            } else if (score >= 7) {
+            } else if (score >= NPS_PASSIVE_MIN_SCORE) {
                 passives++;
             } else {
                 detractors++;
@@ -146,24 +159,24 @@ public class MetricsAggregationServiceImpl implements MetricsAggregationService 
         metrics.setPromoters(promoters);
         metrics.setPassives(passives);
         metrics.setDetractors(detractors);
+        metrics.setScoreValue(calculateNpsValue(promoters, detractors, feedbacks.size()));
+    }
 
-        BigDecimal total = BigDecimal.valueOf(feedbacks.size());
-        BigDecimal scoreValue = BigDecimal.valueOf(promoters)
+    private BigDecimal calculateNpsValue(int promoters, int detractors, int total) {
+        return BigDecimal.valueOf(promoters)
                 .subtract(BigDecimal.valueOf(detractors))
-                .divide(total, 4, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100));
-
-        metrics.setScoreValue(scoreValue);
+                .divide(BigDecimal.valueOf(total), SCALE_4, RoundingMode.HALF_UP)
+                .multiply(HUNDRED);
     }
 
     private void calculateCsat(DailyMetrics metrics, List<CustomerFeedback> feedbacks) {
         long satisfied = feedbacks.stream()
-                .filter(f -> f.getScore() >= 4)
+                .filter(f -> f.getScore() >= CSAT_SATISFIED_MIN_SCORE)
                 .count();
 
         BigDecimal scoreValue = BigDecimal.valueOf(satisfied)
-                .divide(BigDecimal.valueOf(feedbacks.size()), 4, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100));
+                .divide(BigDecimal.valueOf(feedbacks.size()), SCALE_4, RoundingMode.HALF_UP)
+                .multiply(HUNDRED);
 
         metrics.setScoreValue(scoreValue);
     }
@@ -173,8 +186,6 @@ public class MetricsAggregationServiceImpl implements MetricsAggregationService 
                 .map(f -> BigDecimal.valueOf(f.getScore()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal scoreValue = sum.divide(BigDecimal.valueOf(feedbacks.size()), 2, RoundingMode.HALF_UP);
-
-        metrics.setScoreValue(scoreValue);
+        metrics.setScoreValue(sum.divide(BigDecimal.valueOf(feedbacks.size()), SCALE_2, RoundingMode.HALF_UP));
     }
 }

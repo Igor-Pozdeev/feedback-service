@@ -36,9 +36,10 @@ public class SurveyCreationServiceImpl implements SurveyCreationService {
             log.warn("Нет ни одной активной кампании");
             return;
         }
-            activeCampaigns.stream()
-                    .filter(campaign -> !surveyRepository.existsByContextIdAndCampaignId(event.contextId(), campaign.getId()))
-                    .forEach(campaign -> saveSurvey(event, campaign));
+
+        activeCampaigns.stream()
+                .filter(campaign -> !surveyRepository.existsByContextIdAndCampaignId(event.contextId(), campaign.getId()))
+                .forEach(campaign -> saveSurvey(event, campaign));
     }
 
     private void validateEvent(CustomerEvent event) {
