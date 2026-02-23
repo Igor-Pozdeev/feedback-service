@@ -36,6 +36,6 @@ public interface SurveyRepository extends JpaRepository<Survey, UUID> {
     int expireUnsentSurveys(@Param("expirationTime") LocalDateTime expirationTime);
 
     @Modifying
-    @Query("UPDATE Survey s SET s.status = 'EXPIRED' WHERE s.status = 'PENDING' AND s.campaign.endDate < :currentTime")
+    @Query("UPDATE Survey s SET s.status = 'EXPIRED' WHERE s.status = 'PENDING' AND s.campaignId IN (SELECT c.id FROM Campaign c WHERE c.endDate < :currentTime)")
     int expireSurveysWithFinishedCampaigns(@Param("currentTime") LocalDateTime currentTime);
 }
