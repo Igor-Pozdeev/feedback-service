@@ -81,17 +81,32 @@ public class MetricsServiceImpl implements MetricsService {
                 .mapToInt(DailyMetrics::getTotalResponses)
                 .sum();
 
-        BigDecimal averageScore = BigDecimal.ZERO;
+        BigDecimal averageScore = calculateAverageScore(metrics);
+        LocalDate[] period = calculatePeriod(metrics, request);
 
-        if (!metrics.isEmpty()) {
-            BigDecimal sumScore = metrics.stream()
-                    .map(DailyMetrics::getScoreValue)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return MetricsSummaryResponse.builder()
+                .totalResponses(totalResponses)
+                .averageScore(averageScore)
+                .periodFrom(period[0])
+                .periodTo(period[1])
+                .build();
+    }
 
-            averageScore = sumScore.divide(BigDecimal.valueOf(metrics.size()), 2, RoundingMode.HALF_UP);
+    private BigDecimal calculateAverageScore(List<DailyMetrics> metrics) {
+        if (metrics.isEmpty()) {
+            return BigDecimal.ZERO;
         }
 
+        BigDecimal sumScore = metrics.stream()
+                .map(DailyMetrics::getScoreValue)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return sumScore.divide(BigDecimal.valueOf(metrics.size()), 2, RoundingMode.HALF_UP);
+    }
+
+    private LocalDate[] calculatePeriod(List<DailyMetrics> metrics, FilterMetricsRequest request) {
         LocalDate periodFrom = request.getDateFrom();
+        LocalDate periodTo = request.getDateTo();
 
         if (periodFrom == null && !metrics.isEmpty()) {
             periodFrom = metrics.stream()
@@ -100,8 +115,6 @@ public class MetricsServiceImpl implements MetricsService {
                     .orElse(null);
         }
 
-        LocalDate periodTo = request.getDateTo();
-
         if (periodTo == null && !metrics.isEmpty()) {
             periodTo = metrics.stream()
                     .map(m -> m.getDate().toLocalDate())
@@ -109,11 +122,15 @@ public class MetricsServiceImpl implements MetricsService {
                     .orElse(null);
         }
 
-        return MetricsSummaryResponse.builder()
-                .totalResponses(totalResponses)
-                .averageScore(averageScore)
-                .periodFrom(periodFrom)
-                .periodTo(periodTo)
-                .build();
+        // Если дат нет ни в запросе, ни в данных, используем текущую дату, чтобы избежать null
+        if (periodFrom == null) {
+            periodFrom = LocalDate.now();
+        }
+
+        if (periodTo == null) {
+            periodTo = LocalDate.now();
+        }
+
+        return new LocalDate[]{periodFrom, periodTo};
     }
 }
